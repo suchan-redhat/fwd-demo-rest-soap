@@ -7,7 +7,7 @@
 	<groupId>com.fwd</groupId>
 	<artifactId>fwd-demo-rest-soap</artifactId>
 	<version>1.0</version>
-	<name>fwd-demo-rest-rest</name>
+	<name>fwd-demo-rest-soap</name>
 	<description>fwd-demo-rest-soap</description>
 	<properties>
 		<maven.compiler.source>1.8</maven.compiler.source>
@@ -57,6 +57,12 @@
 		<dependency>
 			<groupId>org.apache.camel</groupId>
 			<artifactId>camel-spring</artifactId>
+			<version>2.21.0.fuse-000077-redhat-1</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.camel</groupId>
+			<artifactId>camel-jsonpath</artifactId>
 			<version>2.21.0.fuse-000077-redhat-1</version>
 			<scope>provided</scope>
 		</dependency>

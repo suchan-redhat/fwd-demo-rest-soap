@@ -1,6 +1,7 @@
 package com.fwd.demo.routes;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.ExchangePattern;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.cxf.CxfEndpoint;
@@ -9,17 +10,10 @@ import org.apache.camel.component.jackson.JacksonDataFormat;
 import org.apache.camel.model.rest.RestBindingMode;
 import org.apache.cxf.message.MessageContentsList;
 
-import com.fwd.demo.beans.DataQuotation;
-import com.fwd.demo.beans.DiscountParty;
-import com.fwd.demo.beans.InsuranceLevy;
-import com.fwd.demo.beans.InsuredSummary;
 import com.fwd.demo.beans.InternalRequest;
 import com.fwd.demo.beans.InternalResponse;
-import com.fwd.demo.beans.Message;
-import com.fwd.demo.beans.PlanBPriceInfo;
-import com.fwd.demo.beans.PriceInfo;
-import com.fwd.demo.util.DesEncrypter;
 import com.fwd.demo.ws.SampleSoap;
+
 
 /**
  * 
@@ -206,17 +200,39 @@ public class MyWebServiceRouteBuilder extends RouteBuilder {
 
         restConfiguration()
 		.component("spark-rest")
-			.port(18080)
+			.port(8088)
 		;
 		rest("/rest2soap")
 			.post().produces("text/json").consumes("text/json")
-			.bindingMode(RestBindingMode.json)
-			.type(InternalRequest.class).outType(InternalResponse.class)
-			.to("direct:rest2SoapProcess")
+//			.bindingMode(RestBindingMode.json)
+//			.type(InternalRequest.class).outType(InternalResponse.class)
+			.to("direct:rest2SoapProcess")			
 		;	
 		
 		from("direct:rest2SoapProcess")
+		.setExchangePattern(ExchangePattern.InOut)
 		//.unmarshal(formatResquest)
+        .split().jsonpath("$").streaming().parallelProcessing()
+        .marshal(formatResquest)
+        .convertBodyTo(String.class)
+        .unmarshal(formatResquest)
+     	//.to("direct:rest-soap-to-soap")
+		.setExchangePattern(ExchangePattern.InOut)
+        .aggregate(constant(true),new MyAggregationStragegy())
+	     .completionSize(2)
+     	.to("direct:rest-soap-to-soap")
+	    .marshal(formatResponse)
+		.convertBodyTo(String.class)
+	    .log("after aggregate ${body}")
+		.unmarshal(formatResponse)
+	    .log("${body}");
+		;
+		
+		from("direct:rest-soap-to-soap")
+		.setExchangePattern(ExchangePattern.InOut)
+		.log("body ${body}")
+		.marshal(formatResquest)
+		.unmarshal(formatResquest)
 		.process(new Processor() {
 			@Override
 			public void process(Exchange exchange) throws Exception {
@@ -236,9 +252,7 @@ public class MyWebServiceRouteBuilder extends RouteBuilder {
 				exchange.getIn().setBody(internalResponse);
 			}	
         })
-		.marshal(formatResponse)
-		.convertBodyTo(String.class)
-		.unmarshal(formatResponse)
+		
 		;
 			
 			
